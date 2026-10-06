@@ -11,9 +11,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.Lifecycle
 import com.projectx.data.AppDatabase
-import com.projectx.habits.HabitDao
+import com.projectx.birthdays.BirthdayWorker
+import com.projectx.birthdays.birthdayRoutes
 import com.projectx.habits.habitRoutes
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.NavHost
@@ -29,15 +31,22 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val prefs = Prefs(applicationContext)
-        val habitDao = AppDatabase.get(applicationContext).habits()
+        val db = AppDatabase.get(applicationContext)
+        BirthdayWorker.schedule(applicationContext)
+        // Opened from a notification/widget: jump straight to that screen (not again after rotation).
+        val startRoute = if (savedInstanceState == null) intent.getStringExtra(EXTRA_ROUTE) else null
         setContent {
             val dark = when (prefs.theme) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.DARK -> true
                 ThemeMode.LIGHT -> false
             }
-            ProjectXTheme(dark) { AppNav(prefs, habitDao) }
+            ProjectXTheme(dark) { AppNav(prefs, db, startRoute) }
         }
+    }
+
+    companion object {
+        const val EXTRA_ROUTE = "route"
     }
 }
 
@@ -46,9 +55,18 @@ fun NavBackStackEntry.ready() = lifecycle.currentState == Lifecycle.State.RESUME
 
 private const val NAV_MS = 380
 
+/** Built modules have their own screens; the rest show the "coming soon" placeholder. */
+private val Module.route
+    get() = when (this) {
+        Module.HABITS -> "habits"
+        Module.BIRTHDAYS -> "birthdays"
+        else -> "module/$id"
+    }
+
 @Composable
-private fun AppNav(prefs: Prefs, habitDao: HabitDao) {
+private fun AppNav(prefs: Prefs, db: AppDatabase, startRoute: String?) {
     val nav = rememberNavController()
+    LaunchedEffect(Unit) { startRoute?.let { nav.navigate(it) } }
     NavHost(
         navController = nav,
         startDestination = "home",
@@ -72,7 +90,7 @@ private fun AppNav(prefs: Prefs, habitDao: HabitDao) {
         composable("home") { e ->
             HomeScreen(
                 prefs = prefs,
-                onOpen = { if (e.ready()) nav.navigate(if (it == Module.HABITS) "habits" else "module/${it.id}") },
+                onOpen = { if (e.ready()) nav.navigate(it.route) },
                 onSettings = { if (e.ready()) nav.navigate("settings") },
             )
         }
@@ -83,6 +101,7 @@ private fun AppNav(prefs: Prefs, habitDao: HabitDao) {
             val m = Module.byId(e.arguments?.getString("id")) ?: return@composable
             ModuleScreen(m, onBack = { if (e.ready()) nav.popBackStack() })
         }
-        habitRoutes(nav, habitDao, prefs)
+        habitRoutes(nav, db.habits(), prefs)
+        birthdayRoutes(nav, db.birthdays(), prefs)
     }
 }

@@ -37,6 +37,12 @@
 | `habits/HabitListScreen.kt` | Habit list with monthly counts |
 | `habits/HabitCalendarScreen.kt` | Month/year calendar, day sheet, stats |
 | `habits/HabitFormScreen.kt` | One form for new / edit / defaults |
+| `ui/Calendar.kt` | Shared PeriodBar, CalendarCard (swipe + animation), MonthGrid, DayCell, YearGrid |
+| `ui/theme/Accents.kt` | AccentColor (6 colors × light/dark), ModeChoice, `ModuleTheme` |
+| `birthdays/Data.kt` | Person table, DAO, next-birthday / reminder math |
+| `birthdays/BirthdayScreens.kt` | Calendar/list screen, add/edit form, settings |
+| `birthdays/Reminders.kt` | Daily WorkManager job: reminders + widget refresh |
+| `birthdays/Widget.kt` | Glance home-screen widget (list ↔ calendar) |
 
 Screens collect Room `Flow`s directly and write via coroutines. No ViewModels until a screen actually needs one.
 Room schema JSON is exported to `app/schemas/`. Keep it, because future DB migrations are checked against it.
@@ -86,8 +92,8 @@ Widgets never show Vault/Locker data.
 |---|---|
 | Habit | id, name, type (check/emoji/number), multi, options, color, mode, createdAt |
 | Entry | id, habitId, day (epochDay), value, emoji? (many per day when multi) |
+| Person | id, name, month, day, year?, note |
 | reminder | id, title, triggerAt, repeat (none/daily/weekly/monthly), enabled |
-| birthday | id, name, month, day, year?, notifyDaysBefore |
 | todo | id, title, notes?, dueAt?, done, reminderId? |
 | vault_entry | id, title, username, password, url?, notes? (DB encrypted as a whole) |
 | locked_file | id, displayName, mimeType, encryptedPath, size, addedAt |

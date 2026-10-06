@@ -2,6 +2,19 @@
 
 A log of sessions and decisions. Newest entries go at the top.
 
+## 2026-10-06 — Session 4: Birthdays (v0.3.0)
+**Done**
+- Repo pushed to github.com/Jay-Prajapati-IT/Project-X as Jay (see memory: never use the abhi account).
+- Refactor: shared calendar (`ui/Calendar.kt`), accent colors + `ModuleTheme`, FormCard/ColorRow/notification helper moved into `ui/`.
+- Birthdays from the third sketch: month/year calendar with birthday days colored + 🎂, tap a date for a sheet, list view, "Next up" card, add/edit/delete form with date picker and optional year.
+- Settings: color, light/dark, reminders (on the day / 1 / 3 / 7 days before; one time or every day), add-widget button.
+- DB v2 (auto-migration adds Person). WorkManager daily job ~9 AM. Glance widget.
+- Tests: BirthdayTest (next birthday, Feb 29, reminder rules) + StreaksTest.
+
+**Deviations from sketch**
+- Widget: "double-tap opens app" isn't reliable on Android widgets (no double-tap events; launching the app from a background callback is blocked on newer Android). Instead: tap the body to switch list ↔ calendar, tap the title row ("Open ›") to open the app.
+- Reminder time is fixed around 9 AM for now.
+
 ## 2026-10-06 — Session 3: Habit tracker (v0.2.0)
 **Done**
 - Built the habit tracker from the user's second sketch: list → calendar → settings, plus defaults for new habits.

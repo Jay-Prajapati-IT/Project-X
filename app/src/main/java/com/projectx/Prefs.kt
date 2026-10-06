@@ -49,6 +49,29 @@ class Prefs(context: Context) {
         }
     }
 
+    // Birthdays module
+    var bdayColor by mutableStateOf(sp.getString("bday_color", null) ?: AccentColor.PINK.id)
+        private set
+    var bdayMode by mutableStateOf(sp.getString("bday_mode", null) ?: ModeChoice.APP.id)
+        private set
+    var bdayRemind by mutableStateOf(sp.getBoolean("bday_remind", true))
+        private set
+    /** 0 = only on the day. */
+    var bdayDaysBefore by mutableStateOf(sp.getInt("bday_days_before", 1))
+        private set
+    /** true = remind every day from `bdayDaysBefore` until the day; false = once ahead + on the day. */
+    var bdayDaily by mutableStateOf(sp.getBoolean("bday_daily", false))
+        private set
+    /** Epoch day reminders were last sent, so a worker re-run can't notify twice. */
+    val bdayLastNotified get() = sp.getLong("bday_last_notified", -1)
+
+    fun updateBdayColor(v: String) { bdayColor = v; sp.edit { putString("bday_color", v) } }
+    fun updateBdayMode(v: String) { bdayMode = v; sp.edit { putString("bday_mode", v) } }
+    fun updateBdayRemind(v: Boolean) { bdayRemind = v; sp.edit { putBoolean("bday_remind", v) } }
+    fun updateBdayDaysBefore(v: Int) { bdayDaysBefore = v; sp.edit { putInt("bday_days_before", v) } }
+    fun updateBdayDaily(v: Boolean) { bdayDaily = v; sp.edit { putBoolean("bday_daily", v) } }
+    fun markBdayNotified(day: Long) = sp.edit { putLong("bday_last_notified", day) }
+
     fun pin(m: Module) = saveHome((home + m).distinct())
     fun unpin(m: Module) = saveHome(home - m)
 

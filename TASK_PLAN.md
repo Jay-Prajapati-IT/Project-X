@@ -30,10 +30,14 @@ Build in this order. Each phase ends with a usable APK on your phone, so you can
 - [ ] Battery-optimization exemption prompt
 - [ ] Link a todo's due date to a reminder
 
-## Phase 4 — Birthdays
-- [ ] Manual add, list sorted by next upcoming
-- [ ] Daily WorkManager check + notifications
-- [ ] (If wanted) import from Contacts
+## Birthdays (v0.3.0)
+- [x] Add / edit / delete people (DOB, year optional, note)
+- [x] Calendar (month/year, shared with Habits) with birthdays colored; tap a date for details
+- [x] List view sorted by next birthday, "Next up" card
+- [x] Settings: color + light/dark, reminders (days before, once/daily), add widget
+- [x] Daily reminder worker (~9 AM, WorkManager)
+- [x] Home-screen widget (Glance): list ↔ calendar
+- [ ] Import from Contacts (only if wanted)
 
 ## Phase 5 — Home dashboard
 - [ ] Today's view pulling data from all modules
