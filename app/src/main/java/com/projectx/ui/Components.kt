@@ -1,5 +1,21 @@
 package com.projectx.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import com.projectx.Prefs
+import com.projectx.ui.theme.AccentColor
+import com.projectx.ui.theme.LocalDark
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
@@ -175,4 +191,57 @@ fun AnimatedNumber(value: Int, style: TextStyle, color: Color, modifier: Modifie
         },
         label = "number",
     ) { Text("$it$suffix", style = style, color = color, fontWeight = FontWeight.Bold) }
+}
+
+@Composable
+fun FormCard(title: String? = null, hint: String? = null, content: @Composable ColumnScope.() -> Unit) {
+    Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+            if (title != null) Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            if (hint != null) {
+                Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (title != null || hint != null) Spacer(Modifier.height(12.dp))
+            content()
+        }
+    }
+}
+
+/** Row of accent color dots; the selected one grows and shows a check. */
+@Composable
+fun ColorRow(selected: String, onSelect: (String) -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        AccentColor.entries.forEach { c ->
+            val accent = c.accent(LocalDark.current ?: true)
+            val on = c.id == selected
+            val size by animateDpAsState(if (on) 44.dp else 34.dp, spring(dampingRatio = 0.6f), label = "dot")
+            Box(Modifier.size(46.dp), contentAlignment = Alignment.Center) {
+                Box(
+                    Modifier.size(size).clip(CircleShape).background(accent.primary).clickable { onSelect(c.id) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    androidx.compose.animation.AnimatedVisibility(on, enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut()) {
+                        Icon(Icons.Rounded.Check, null, tint = accent.onPrimary)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Returns a function that turns notifications on, asking for the Android 13+ permission when needed. */
+@Composable
+fun rememberEnableNotifications(prefs: Prefs, then: (Boolean) -> Unit = {}): () -> Unit {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        prefs.updateNotifications(it)
+        then(it)
+    }
+    return {
+        val needsAsk = Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        if (needsAsk) launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        else { prefs.updateNotifications(true); then(true) }
+    }
 }

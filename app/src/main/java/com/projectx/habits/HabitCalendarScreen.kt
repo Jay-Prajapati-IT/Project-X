@@ -2,6 +2,7 @@
 
 package com.projectx.habits
 
+import com.projectx.ui.theme.ModuleTheme
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -77,7 +78,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.projectx.ui.AnimatedNumber
-import com.projectx.ui.PillGroup
+import com.projectx.ui.CalendarCard
+import com.projectx.ui.DayCell
+import com.projectx.ui.MonthGrid
+import com.projectx.ui.PeriodBar
+import com.projectx.ui.YearGrid
 import com.projectx.ui.RoundIconButton
 import com.projectx.ui.TopBar
 import com.projectx.ui.pressScale
@@ -89,14 +94,12 @@ import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.sign
 
-private val CellShape = RoundedCornerShape(14.dp)
-private val WEEKDAYS = listOf("M", "T", "W", "T", "F", "S", "S")
 
 @Composable
 fun HabitCalendarScreen(dao: HabitDao, id: Long, onBack: () -> Unit, onEdit: () -> Unit) {
     val habit by remember(id) { dao.habit(id) }.collectAsState(null)
     val h = habit ?: return
-    HabitTheme(h.color, h.mode) { CalendarContent(dao, h, onBack, onEdit) }
+    ModuleTheme(h.color, h.mode) { CalendarContent(dao, h, onBack, onEdit) }
 }
 
 @Composable
@@ -140,57 +143,23 @@ private fun CalendarContent(dao: HabitDao, h: Habit, onBack: () -> Unit, onEdit:
                 Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { shift(-1) }) { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, "Previous") }
-                    PillGroup(
-                        listOf("Month", "Year"),
-                        selected = if (monthView) 0 else 1,
-                        onSelect = { monthView = it == 0 },
-                        modifier = Modifier.weight(1f),
-                    )
-                    IconButton(onClick = { shift(1) }, enabled = canNext) {
-                        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, "Next")
-                    }
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(28.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    modifier = Modifier.pointerInput(monthView, ym) {
-                        var dx = 0f
-                        detectHorizontalDragGestures(
-                            onDragStart = { dx = 0f },
-                            onDragEnd = { if (dx > 120) shift(-1) else if (dx < -120) shift(1) },
-                        ) { _, delta -> dx += delta }
-                    },
-                ) {
-                    AnimatedContent(
-                        targetState = monthView to ym,
-                        transitionSpec = {
-                            val dir = if (targetState.first != initialState.first) 0
-                            else targetState.second.compareTo(initialState.second).sign
-                            if (dir == 0) {
-                                (fadeIn(tween(250)) + scaleIn(initialScale = 0.96f)) togetherWith fadeOut(tween(150))
-                            } else {
-                                (slideInHorizontally(tween(320)) { it * dir / 3 } + fadeIn(tween(320))) togetherWith
-                                    (slideOutHorizontally(tween(320)) { -it * dir / 3 } + fadeOut(tween(160)))
-                            }
-                        },
-                        label = "calendar",
-                    ) { (isMonth, period) ->
-                        Column(Modifier.padding(14.dp)) {
-                            Text(
-                                if (isMonth) period.format(DateTimeFormatter.ofPattern("MMMM yyyy")) else "${period.year}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(start = 4.dp, bottom = 12.dp),
-                            )
-                            if (isMonth) {
-                                MonthGrid(period, h, byDay, today, ::tap) { sheetDay = it }
-                            } else {
-                                YearGrid(period.year, byDay, today) { monthView = true; ym = it }
-                            }
-                        }
+                PeriodBar(monthView, { monthView = it }, { shift(it.toLong()) }, canNext)
+                CalendarCard(monthView, ym, { shift(it.toLong()) }) { isMonth, period ->
+                    if (isMonth) {
+                        HabitMonth(period, h, byDay, today, ::tap) { sheetDay = it }
+                    } else {
+                        YearGrid(
+                            period.year,
+                            total = { m -> (1..m.lengthOfMonth()).sumOf { byDay[m.atDay(it).toEpochDay()].total() } },
+                            dot = { day ->
+                                val cs = MaterialTheme.colorScheme
+                                when {
+                                    byDay[day] != null -> cs.primary
+                                    day > today -> cs.outlineVariant.copy(alpha = 0.4f)
+                                    else -> cs.outlineVariant
+                                }
+                            },
+                        ) { monthView = true; ym = it }
                     }
                 }
                 Text(
@@ -225,7 +194,7 @@ private fun CalendarContent(dao: HabitDao, h: Habit, onBack: () -> Unit, onEdit:
 private fun List<Entry>?.total() = this?.sumOf { it.value } ?: 0
 
 @Composable
-private fun MonthGrid(
+private fun HabitMonth(
     ym: YearMonth,
     h: Habit,
     byDay: Map<Long, List<Entry>>,
@@ -234,160 +203,48 @@ private fun MonthGrid(
     onHold: (Long) -> Unit,
 ) {
     val first = ym.atDay(1).toEpochDay()
-    val lead = ym.atDay(1).dayOfWeek.value - 1 // Monday first
-    val count = ym.lengthOfMonth()
-    val max = (0 until count).maxOf { byDay[first + it].total() }.coerceAtLeast(1)
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            WEEKDAYS.forEach {
-                Text(
-                    it,
-                    Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        for (week in 0 until (lead + count + 6) / 7) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                for (col in 0 until 7) {
-                    val i = week * 7 + col - lead
-                    Box(Modifier.weight(1f).aspectRatio(1f)) {
-                        if (i in 0 until count) {
-                            val day = first + i
-                            DayCell(day, i + 1, h, byDay[day].orEmpty(), max, today, onTap, onHold)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DayCell(
-    day: Long,
-    label: Int,
-    h: Habit,
-    list: List<Entry>,
-    max: Int,
-    today: Long,
-    onTap: (Long) -> Unit,
-    onHold: (Long) -> Unit,
-) {
+    val max = (0 until ym.lengthOfMonth()).maxOf { byDay[first + it].total() }.coerceAtLeast(1)
     val cs = MaterialTheme.colorScheme
-    val total = list.total()
-    val future = day > today
-    // Heat: single checks are full color; counts/numbers get stronger the bigger they are in this month.
-    val heat = when {
-        list.isEmpty() -> 0f
-        h.checkType == CheckType.CHECK && !h.multi -> 1f
-        else -> 0.35f + 0.65f * total / max
-    }
-    val bg by animateColorAsState(if (list.isEmpty()) cs.surfaceContainerHigh else lerp(cs.primaryContainer, cs.primary, heat), label = "cell")
-    val fg by animateColorAsState(
-        when {
-            list.isEmpty() -> cs.onSurface
-            heat > 0.6f -> cs.onPrimary
-            else -> cs.onPrimaryContainer
-        },
-        label = "cellText",
-    )
-    val badge = when {
-        list.isEmpty() -> null
-        h.checkType == CheckType.EMOJI -> list.last().emoji
-        h.checkType == CheckType.NUMBER -> "$total"
-        h.multi -> "×$total"
-        else -> null
-    }
-    val source = remember { MutableInteractionSource() }
-    val scale = pressScale(source)
-    Box(
-        Modifier
-            .fillMaxSize()
-            .graphicsLayer { scaleX = scale; scaleY = scale; alpha = if (future) 0.35f else 1f }
-            .clip(CellShape)
-            .background(bg)
-            .then(if (day == today) Modifier.border(2.dp, if (list.isEmpty()) cs.primary else cs.onSurface, CellShape) else Modifier)
-            .combinedClickable(
-                interactionSource = source,
-                indication = ripple(),
-                enabled = !future,
-                onLongClick = { onHold(day) },
-                onClick = { onTap(day) },
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("$label", style = MaterialTheme.typography.labelMedium, color = fg)
-            if (badge != null) {
-                Text(
-                    badge,
-                    fontSize = if (h.checkType == CheckType.EMOJI) 14.sp else 10.sp,
-                    color = fg,
-                    maxLines = 1,
-                    lineHeight = 14.sp,
-                )
-            }
+    MonthGrid(ym) { day, label ->
+        val list = byDay[day].orEmpty()
+        val total = list.total()
+        // Heat: single checks are full color; counts/numbers get stronger the bigger they are in this month.
+        val heat = when {
+            list.isEmpty() -> 0f
+            h.checkType == CheckType.CHECK && !h.multi -> 1f
+            else -> 0.35f + 0.65f * total / max
         }
-    }
-}
-
-@Composable
-private fun YearGrid(year: Int, byDay: Map<Long, List<Entry>>, today: Long, onMonth: (YearMonth) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        for (row in 0 until 4) {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                for (col in 0 until 3) {
-                    val ym = YearMonth.of(year, row * 3 + col + 1)
-                    MiniMonth(ym, byDay, today, Modifier.weight(1f)) { onMonth(ym) }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MiniMonth(ym: YearMonth, byDay: Map<Long, List<Entry>>, today: Long, modifier: Modifier, onClick: () -> Unit) {
-    val cs = MaterialTheme.colorScheme
-    val first = ym.atDay(1).toEpochDay()
-    val lead = ym.atDay(1).dayOfWeek.value - 1
-    val count = ym.lengthOfMonth()
-    val total = (0 until count).sumOf { byDay[first + it].total() }
-    Column(
-        modifier
-            .clip(RoundedCornerShape(18.dp))
-            .background(cs.surfaceContainerHigh)
-            .clickable(onClick = onClick)
-            .padding(10.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                ym.month.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.weight(1f),
-            )
-            if (total > 0) Text("$total", style = MaterialTheme.typography.labelMedium, color = cs.primary, fontWeight = FontWeight.Bold)
-        }
-        Spacer(Modifier.height(6.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            for (week in 0 until 6) {
-                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    for (col in 0 until 7) {
-                        val i = week * 7 + col - lead
-                        val day = first + i
-                        val color = when {
-                            i !in 0 until count -> Color.Transparent
-                            byDay[day] != null -> cs.primary
-                            day > today -> cs.outlineVariant.copy(alpha = 0.4f)
-                            else -> cs.outlineVariant
-                        }
-                        Box(Modifier.weight(1f).aspectRatio(1f).clip(CircleShape).background(color))
-                    }
-                }
-            }
-        }
+        val bg by animateColorAsState(
+            if (list.isEmpty()) cs.surfaceContainerHigh else lerp(cs.primaryContainer, cs.primary, heat),
+            label = "cell",
+        )
+        val fg by animateColorAsState(
+            when {
+                list.isEmpty() -> cs.onSurface
+                heat > 0.6f -> cs.onPrimary
+                else -> cs.onPrimaryContainer
+            },
+            label = "cellText",
+        )
+        val emoji = h.checkType == CheckType.EMOJI
+        DayCell(
+            dayOfMonth = label,
+            bg = bg,
+            fg = fg,
+            isToday = day == today,
+            ring = if (list.isEmpty()) cs.primary else cs.onSurface,
+            enabled = day <= today,
+            onClick = { onTap(day) },
+            onLongClick = { onHold(day) },
+            badge = when {
+                list.isEmpty() -> null
+                emoji -> list.last().emoji
+                h.checkType == CheckType.NUMBER -> "$total"
+                h.multi -> "×$total"
+                else -> null
+            },
+            badgeSize = if (emoji) 14.sp else 10.sp,
+        )
     }
 }
 

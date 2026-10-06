@@ -7,8 +7,8 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.edit
 import com.projectx.habits.CheckType
 import com.projectx.habits.Habit
-import com.projectx.habits.HabitColor
-import com.projectx.habits.HabitMode
+import com.projectx.ui.theme.AccentColor
+import com.projectx.ui.theme.ModeChoice
 
 enum class ThemeMode(val id: String, val label: String) { SYSTEM("system", "System"), DARK("dark", "Dark"), LIGHT("light", "Light") }
 
@@ -32,8 +32,8 @@ class Prefs(context: Context) {
             type = sp.getString("habit_type", null) ?: CheckType.CHECK.id,
             multi = sp.getBoolean("habit_multi", false),
             options = sp.getString("habit_options", null) ?: "",
-            color = sp.getString("habit_color", null) ?: HabitColor.PURPLE.id,
-            mode = sp.getString("habit_mode", null) ?: HabitMode.APP.id,
+            color = sp.getString("habit_color", null) ?: AccentColor.PURPLE.id,
+            mode = sp.getString("habit_mode", null) ?: ModeChoice.APP.id,
         )
     )
         private set

@@ -1,10 +1,5 @@
 package com.projectx.ui
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -33,11 +28,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import com.projectx.BuildConfig
 import com.projectx.Module
 import com.projectx.Prefs
@@ -45,10 +38,7 @@ import com.projectx.ThemeMode
 
 @Composable
 fun SettingsScreen(prefs: Prefs, onBack: () -> Unit) {
-    val context = LocalContext.current
-    val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        prefs.updateNotifications(it)
-    }
+    val enableNotifications = rememberEnableNotifications(prefs)
 
     Scaffold { pad ->
         LazyColumn(Modifier.fillMaxSize().padding(pad), contentPadding = PaddingValues(bottom = 24.dp)) {
@@ -92,11 +82,7 @@ fun SettingsScreen(prefs: Prefs, onBack: () -> Unit) {
                 Section("General") {
                     Row(Icons.Rounded.Notifications, "Notifications", "Reminders, alarms and birthday alerts") {
                         Switch(prefs.notifications, { on ->
-                            val needsAsk = on && Build.VERSION.SDK_INT >= 33 &&
-                                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
-                                PackageManager.PERMISSION_GRANTED
-                            if (needsAsk) askPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            else prefs.updateNotifications(on)
+                            if (on) enableNotifications() else prefs.updateNotifications(false)
                         })
                     }
                 }

@@ -1,5 +1,8 @@
 package com.projectx.habits
 
+import com.projectx.ui.theme.AccentColor
+import com.projectx.ui.theme.ModeChoice
+import com.projectx.ui.theme.ModuleTheme
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
@@ -53,6 +56,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import com.projectx.ui.ColorRow
+import com.projectx.ui.FormCard
 import com.projectx.ui.PillGroup
 import com.projectx.ui.TopBar
 import com.projectx.ui.theme.LocalDark
@@ -83,7 +88,7 @@ fun HabitFormScreen(
     val valid = (kind == FormKind.DEFAULTS || d.name.isNotBlank()) && (type == CheckType.CHECK || options.isNotEmpty())
 
     // The form previews the habit's own color + light/dark live.
-    HabitTheme(d.color, d.mode) {
+    ModuleTheme(d.color, d.mode) {
         Scaffold { pad ->
             Column(Modifier.fillMaxSize().padding(pad).imePadding()) {
                 TopBar(title, onBack)
@@ -160,18 +165,14 @@ fun HabitFormScreen(
                     }
 
                     FormCard("Color") {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            HabitColor.entries.forEach { c ->
-                                ColorDot(c, selected = c.id == d.color) { d = d.copy(color = c.id) }
-                            }
-                        }
+                        ColorRow(d.color) { d = d.copy(color = it) }
                     }
 
                     FormCard("Appearance", "Light or dark just for this habit, whatever the app uses") {
                         PillGroup(
-                            HabitMode.entries.map { it.label },
-                            selected = HabitMode.of(d.mode).ordinal,
-                            onSelect = { d = d.copy(mode = HabitMode.entries[it].id) },
+                            ModeChoice.entries.map { it.label },
+                            selected = ModeChoice.of(d.mode).ordinal,
+                            onSelect = { d = d.copy(mode = ModeChoice.entries[it].id) },
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -220,36 +221,6 @@ fun HabitFormScreen(
                 },
                 dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
             )
-        }
-    }
-}
-
-@Composable
-private fun FormCard(title: String? = null, hint: String? = null, content: @Composable ColumnScope.() -> Unit) {
-    Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
-        Column(Modifier.fillMaxWidth().padding(16.dp)) {
-            if (title != null) Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            if (hint != null) {
-                Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (title != null || hint != null) Spacer(Modifier.height(12.dp))
-            content()
-        }
-    }
-}
-
-@Composable
-private fun ColorDot(c: HabitColor, selected: Boolean, onClick: () -> Unit) {
-    val accent = c.accent(LocalDark.current ?: true)
-    val size by animateDpAsState(if (selected) 46.dp else 36.dp, spring(dampingRatio = 0.6f), label = "dot")
-    Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-        Box(
-            Modifier.size(size).clip(CircleShape).background(accent.primary).clickable(onClick = onClick),
-            contentAlignment = Alignment.Center,
-        ) {
-            AnimatedVisibility(selected, enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut()) {
-                Icon(Icons.Rounded.Check, null, tint = accent.onPrimary)
-            }
         }
     }
 }

@@ -10,7 +10,8 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Upsert
-import com.projectx.ui.theme.Accent
+import com.projectx.ui.theme.AccentColor
+import com.projectx.ui.theme.ModeChoice
 import kotlinx.coroutines.flow.Flow
 
 // All `id` strings below are stored in the DB / prefs. Never rename them.
@@ -25,48 +26,6 @@ enum class CheckType(val id: String, val label: String, val hint: String, val de
     }
 }
 
-enum class HabitMode(val id: String, val label: String) {
-    APP("app", "Same as app"), LIGHT("light", "Light"), DARK("dark", "Dark");
-
-    companion object {
-        fun of(id: String) = entries.find { it.id == id } ?: APP
-    }
-}
-
-enum class HabitColor(val id: String, val dark: Accent, val light: Accent) {
-    PURPLE(
-        "purple",
-        Accent(Color(0xFFBCA8F7), Color(0xFF241A45), Color(0xFF342A55), Color(0xFFE6DDFF)),
-        Accent(Color(0xFF6A50C9), Color.White, Color(0xFFE9E1FF), Color(0xFF22125A)),
-    ),
-    BLUE(
-        "blue",
-        Accent(Color(0xFF8AB4FF), Color(0xFF0B2B5C), Color(0xFF1F2E4A), Color(0xFFD8E2FF)),
-        Accent(Color(0xFF1E5BD8), Color.White, Color(0xFFDAE2FF), Color(0xFF001A43)),
-    ),
-    GREEN(
-        "green",
-        Accent(Color(0xFF7DDB9A), Color(0xFF0B3A1D), Color(0xFF1C3626), Color(0xFFC8F5D4)),
-        Accent(Color(0xFF1E8A4C), Color.White, Color(0xFFC9F2D5), Color(0xFF002110)),
-    ),
-    YELLOW(
-        "yellow",
-        Accent(Color(0xFFFFD866), Color(0xFF3D2E00), Color(0xFF3D3418), Color(0xFFFFEDB0)),
-        Accent(Color(0xFF9A7400), Color.White, Color(0xFFFFEDB0), Color(0xFF261A00)),
-    ),
-    RED(
-        "red",
-        Accent(Color(0xFFFF8A8A), Color(0xFF4A0E0E), Color(0xFF4A2224), Color(0xFFFFDADA)),
-        Accent(Color(0xFFC62828), Color.White, Color(0xFFFFDAD8), Color(0xFF410002)),
-    );
-
-    fun accent(dark: Boolean) = if (dark) this.dark else light
-
-    companion object {
-        fun of(id: String) = entries.find { it.id == id } ?: PURPLE
-    }
-}
-
 @Entity
 data class Habit(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -75,8 +34,8 @@ data class Habit(
     val multi: Boolean = false,
     /** Space-separated emojis or numbers (EMOJI / NUMBER types). */
     val options: String = "",
-    val color: String = HabitColor.PURPLE.id,
-    val mode: String = HabitMode.APP.id,
+    val color: String = AccentColor.PURPLE.id,
+    val mode: String = ModeChoice.APP.id,
     val createdAt: Long = 0,
 ) {
     val checkType get() = CheckType.of(type)

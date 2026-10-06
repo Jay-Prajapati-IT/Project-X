@@ -1,6 +1,5 @@
 package com.projectx.habits
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -10,21 +9,8 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.projectx.Prefs
 import com.projectx.ready
-import com.projectx.ui.theme.LocalDark
-import com.projectx.ui.theme.ProjectXTheme
+import com.projectx.ui.theme.ModuleTheme
 import kotlinx.coroutines.launch
-
-/** Applies a habit's own color and light/dark choice. */
-@Composable
-fun HabitTheme(color: String, mode: String, content: @Composable () -> Unit) {
-    val appDark = LocalDark.current ?: isSystemInDarkTheme()
-    val dark = when (HabitMode.of(mode)) {
-        HabitMode.APP -> appDark
-        HabitMode.LIGHT -> false
-        HabitMode.DARK -> true
-    }
-    ProjectXTheme(dark, HabitColor.of(color).accent(dark), content)
-}
 
 fun NavGraphBuilder.habitRoutes(nav: NavController, dao: HabitDao, prefs: Prefs) {
     composable("habits") { e ->

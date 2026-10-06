@@ -1,5 +1,6 @@
 package com.projectx.habits
 
+import com.projectx.ui.theme.AccentColor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -100,7 +101,7 @@ fun HabitListScreen(
 
 @Composable
 private fun HabitRow(h: Habit, total: Int, modifier: Modifier, onOpen: () -> Unit, onEdit: () -> Unit) {
-    val accent = HabitColor.of(h.color).accent(LocalDark.current ?: true)
+    val accent = AccentColor.of(h.color).accent(LocalDark.current ?: true)
     val source = remember { MutableInteractionSource() }
     val scale = pressScale(source)
     Surface(
